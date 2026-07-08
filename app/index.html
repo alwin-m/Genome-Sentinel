@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genome Sentinel — Molecular Docking Suite</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/app/style.css">
+    <script src="/app/3Dmol-min.js"></script>
+</head>
+<body>
+
+<!-- ONBOARDING OVERLAY (shown on first visit) -->
+<div class="onboarding-overlay" id="onboarding-overlay">
+    <div class="onboarding-modal">
+        <div class="onboarding-header">
+            <div class="app-icon"><i class="fa-solid fa-dna"></i></div>
+            <h1>Welcome to Genome Sentinel</h1>
+            <p>A complete molecular docking workspace for drug discovery research. This guide walks you through the 6-step workflow.</p>
+        </div>
+        <div class="onboarding-body">
+            <div class="onboarding-step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Select a Protein Target</h4>
+                    <p>Choose a disease target from curated presets (Alzheimer's, Malaria, Diabetes, Cancer) or enter a custom PDB ID to download from RCSB.</p>
+                </div>
+            </div>
+            <div class="onboarding-step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Prepare Ligand Library</h4>
+                    <p>Generate 3D structures of FDA-approved drugs automatically from SMILES notation. Preset ligands are available for each disease target.</p>
+                </div>
+            </div>
+            <div class="onboarding-step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Configure Docking Grid</h4>
+                    <p>Define the 3D search box around the protein's active site. Presets auto-load known coordinates; manual adjustment is supported.</p>
+                </div>
+            </div>
+            <div class="onboarding-step">
+                <div class="step-num">4</div>
+                <div class="step-content">
+                    <h4>Run Docking Simulations</h4>
+                    <p>Select a prepared protein and ligand, then launch AutoDock Vina. Watch real-time log output as the simulation runs.</p>
+                </div>
+            </div>
+            <div class="onboarding-step">
+                <div class="step-num">5</div>
+                <div class="step-content">
+                    <h4>Analyze Results in 3D</h4>
+                    <p>View ranked binding affinities in a table. Load any docked complex into the interactive 3D viewer to inspect poses.</p>
+                </div>
+            </div>
+            <div class="onboarding-step">
+                <div class="step-num">6</div>
+                <div class="step-content">
+                    <h4>Generate Research Paper</h4>
+                    <p>Automatically compile your experimental data into a formatted markdown manuscript with methods, results, and references.</p>
+                </div>
+            </div>
+        </div>
+        <div class="onboarding-footer">
+            <label style="font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:6px;margin-right:auto;">
+                <input type="checkbox" id="onboarding-dont-show" checked>
+                Don't show again
+            </label>
+            <button class="btn btn-secondary" onclick="document.getElementById('onboarding-overlay').classList.add('hidden')">Skip Tour</button>
+            <button class="btn btn-primary" onclick="GenomeSentinel.startTour()">Take the Tour</button>
+        </div>
+    </div>
+</div>
+
+<div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="logo-area">
+            <h2>Genome<span>Sentinel</span><span class="version-tag">v1.0</span></h2>
+        </div>
+        <nav class="nav-menu">
+            <button class="nav-btn active" data-target="panel-dashboard">
+                <i class="fa-solid fa-gauge-high"></i> Dashboard
+                <span class="step-badge">Hub</span>
+            </button>
+            <button class="nav-btn" data-target="panel-step1">
+                <i class="fa-solid fa-shield-virus"></i> 1. Protein Target
+                <span class="step-badge" id="progress-step1">—</span>
+            </button>
+            <button class="nav-btn" data-target="panel-step2">
+                <i class="fa-solid fa-capsules"></i> 2. Ligand Library
+                <span class="step-badge" id="progress-step2">—</span>
+            </button>
+            <button class="nav-btn" data-target="panel-step3">
+                <i class="fa-solid fa-cube"></i> 3. Docking Grid
+                <span class="step-badge" id="progress-step3">—</span>
+            </button>
+            <button class="nav-btn" data-target="panel-step4">
+                <i class="fa-solid fa-play"></i> 4. Run Screen
+                <span class="step-badge" id="progress-step4">—</span>
+            </button>
+            <button class="nav-btn" data-target="panel-step5">
+                <i class="fa-solid fa-chart-line"></i> 5. Analyze & 3D
+                <span class="step-badge" id="progress-step5">—</span>
+            </button>
+            <button class="nav-btn" data-target="panel-step6">
+                <i class="fa-solid fa-file-signature"></i> 6. Research Paper
+                <span class="step-badge" id="progress-step6">—</span>
+            </button>
+        </nav>
+        <div class="sidebar-footer">
+            Molecular Docking Suite &bull; Local Host
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Header Bar -->
+        <header class="top-header">
+            <div class="header-title">
+                <h1 id="panel-title">Dashboard</h1>
+                <p id="panel-subtitle">Overview of your drug discovery environment.</p>
+            </div>
+            <div class="header-actions">
+                <span class="status-badge" id="status-vina"><span class="dot"></span> Vina: Checking...</span>
+                <span class="status-badge" id="status-env"><span class="dot"></span> Python: Checking...</span>
+                <button class="btn btn-secondary btn-sm" id="btn-show-help" title="Show welcome guide"><i class="fa-solid fa-circle-question"></i></button>
+            </div>
+        </header>
+
+        <!-- Step Progress Bar -->
+        <div class="step-progress-bar" id="step-progress-bar">
+            <div class="step-progress-item active" data-step="0">
+                <span class="step-circle">D</span> Dashboard
+            </div>
+            <div class="step-progress-connector" data-connector="0"></div>
+            <div class="step-progress-item" data-step="1">
+                <span class="step-circle">1</span> Protein
+            </div>
+            <div class="step-progress-connector" data-connector="1"></div>
+            <div class="step-progress-item" data-step="2">
+                <span class="step-circle">2</span> Ligands
+            </div>
+            <div class="step-progress-connector" data-connector="2"></div>
+            <div class="step-progress-item" data-step="3">
+                <span class="step-circle">3</span> Grid
+            </div>
+            <div class="step-progress-connector" data-connector="3"></div>
+            <div class="step-progress-item" data-step="4">
+                <span class="step-circle">4</span> Run
+            </div>
+            <div class="step-progress-connector" data-connector="4"></div>
+            <div class="step-progress-item" data-step="5">
+                <span class="step-circle">5</span> Analyze
+            </div>
+            <div class="step-progress-connector" data-connector="5"></div>
+            <div class="step-progress-item" data-step="6">
+                <span class="step-circle">6</span> Paper
+            </div>
+        </div>
+
+        <!-- Panel: Dashboard -->
+        <section class="panel-section active" id="panel-dashboard">
+            <div class="grid-layout">
+                <!-- Workspace Overview -->
+                <div class="card card-wide">
+                    <div class="card-body">
+                        <div class="workspace-welcome">
+                            <h2>Molecular Docking Workspace</h2>
+                            <p>Genome Sentinel performs virtual screening of drug candidates against disease target proteins using AutoDock Vina. Follow the 6-step workflow from left to right, or use the dashboard to monitor your environment and results.</p>
+                            <div class="quick-actions">
+                                <button class="btn btn-primary" id="btn-quick-start"><i class="fa-solid fa-bolt"></i> Quick Start Guide</button>
+                                <button class="btn btn-secondary" id="btn-check-status"><i class="fa-solid fa-arrows-rotate"></i> Refresh Status</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Environment Status -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-laptop-code"></i> Environment</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Checks if AutoDock Vina and the Python pipeline are available for simulations.</p>
+                        <div class="setup-checklist">
+                            <div class="check-item" id="check-vina">
+                                <i class="fa-solid fa-hourglass-start check-icon"></i>
+                                <div>
+                                    <strong>AutoDock Vina Binary</strong>
+                                    <p class="subtext">Docking engine located at <code>bin/vina.exe</code>.</p>
+                                </div>
+                            </div>
+                            <div class="check-item" id="check-rdkit">
+                                <i class="fa-solid fa-hourglass-start check-icon"></i>
+                                <div>
+                                    <strong>Python Pipeline</strong>
+                                    <p class="subtext">Scripts for protein/ligand preparation (RDKit optional).</p>
+                                </div>
+                            </div>
+                            <div class="check-item" id="check-meeko">
+                                <i class="fa-solid fa-hourglass-start check-icon"></i>
+                                <div>
+                                    <strong>Pipeline Ready</strong>
+                                    <p class="subtext">No-rdkit fallback scripts available for headless operation.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary w-100" id="btn-run-setup">
+                            <i class="fa-solid fa-download"></i> Initialize Environment
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Local Library Stats -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-chart-pie"></i> Local Library</h3>
+                    </div>
+                    <div class="card-body stat-grid">
+                        <div class="stat-box">
+                            <span class="stat-number" id="stat-proteins-count">0</span>
+                            <span class="stat-label">Proteins</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="stat-ligands-count">0</span>
+                            <span class="stat-label">Ligands</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="stat-docking-count">0</span>
+                            <span class="stat-label">Docking Runs</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel: Step 1 (Protein Target) -->
+        <section class="panel-section" id="panel-step1">
+            <div class="grid-layout">
+                <div class="card card-wide">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-shield-virus"></i> Select Target Disease &amp; Protein</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Click a preset to auto-configure the target protein and active site coordinates, or enter a custom PDB ID below.</p>
+                        <div class="preset-grid">
+                            <div class="preset-card" data-pdb="2B8L" data-name="BACE1" data-disease="Alzheimer's" data-x="16.0" data-y="10.0" data-z="15.0">
+                                <div class="preset-badge">Alzheimer's</div>
+                                <h4>BACE1 <span class="pdb-tag">2B8L</span></h4>
+                                <p>Beta-secretase 1. Promotes amyloid plaques. Targeted by Donepezil.</p>
+                            </div>
+                            <div class="preset-card" data-pdb="1LD3" data-name="PfDHFR" data-disease="Malaria" data-x="32.5" data-y="14.8" data-z="-3.2">
+                                <div class="preset-badge">Malaria</div>
+                                <h4>PfDHFR <span class="pdb-tag">1LD3</span></h4>
+                                <p>Plasmodium falciparum DHFR. Parasite survival. Targeted by Chloroquine/Pyrimethamine.</p>
+                            </div>
+                            <div class="preset-card" data-pdb="2OQV" data-name="DPP4" data-disease="Diabetes" data-x="40.1" data-y="38.5" data-z="50.3">
+                                <div class="preset-badge">Type 2 Diabetes</div>
+                                <h4>DPP-4 <span class="pdb-tag">2OQV</span></h4>
+                                <p>Dipeptidyl peptidase 4. Breaks down sugar-regulating hormones. Targeted by Metformin/Sitagliptin.</p>
+                            </div>
+                            <div class="preset-card" data-pdb="3PP0" data-name="HER2" data-disease="Breast Cancer" data-x="14.8" data-y="17.5" data-z="94.6">
+                                <div class="preset-badge">Breast Cancer</div>
+                                <h4>HER2 <span class="pdb-tag">3PP0</span></h4>
+                                <p>Human Epidermal Growth Factor Receptor 2. Promotes tumor growth. Targeted by Lapatinib.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-cloud-arrow-down"></i> Download from RCSB PDB</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Enter a 4-character PDB code to download, clean, and prepare any protein structure.</p>
+                        <div class="input-group">
+                            <label for="input-pdb-id">RCSB PDB ID</label>
+                            <div class="input-with-btn">
+                                <input type="text" id="input-pdb-id" placeholder="e.g. 1SGZ" maxlength="4">
+                                <button class="btn btn-primary" id="btn-download-protein"><i class="fa-solid fa-cloud-arrow-down"></i> Download</button>
+                            </div>
+                        </div>
+                        <div class="progress-box hidden" id="download-progress">
+                            <span class="spinner"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                            <span id="download-progress-text">Downloading and cleaning structure...</span>
+                        </div>
+                        <div class="progress-bar-container hidden" id="download-progress-bar">
+                            <div class="progress-bar-track">
+                                <div class="progress-bar-fill indeterminate" id="download-bar-fill"></div>
+                            </div>
+                            <div class="progress-text"><span id="download-elapsed">0s</span> elapsed</div>
+                        </div>
+                        <div class="info-alert info-box">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>Structures are automatically cleaned (water removed) and converted to PDBQT format upon download.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-list"></i> Prepared Structures</h3>
+                        <span class="badge badge-muted" id="protein-count-badge">0 files</span>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-items" id="prepared-proteins-list">
+                            <li class="empty-list">No proteins prepared yet.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel: Step 2 (Ligand Library) -->
+        <section class="panel-section" id="panel-step2">
+            <div class="grid-layout">
+                <div class="card card-wide">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-capsules"></i> Standard Ligand Presets</h3>
+                        <button class="btn btn-primary btn-sm" id="btn-prep-presets"><i class="fa-solid fa-gears"></i> Prepare All Presets</button>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Generate 3D structures of FDA-approved drugs from their SMILES notation. These compounds map to the curated disease targets.</p>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Compound</th>
+                                        <th>SMILES</th>
+                                        <th>Target Context</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="presets-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Add Custom Ligand</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Generate 3D coordinates for a custom molecule from its SMILES string (found on PubChem or Wikipedia).</p>
+                        <form id="form-custom-ligand">
+                            <div class="input-group">
+                                <label for="ligand-name">Compound Name</label>
+                                <input type="text" id="ligand-name" placeholder="e.g. Pyrimethamine" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="ligand-smiles">SMILES Notation</label>
+                                <input type="text" id="ligand-smiles" placeholder="e.g. CCC1=C(C(=NC(=N1)N)N)C2=CC=C(C=C2)Cl" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100" id="btn-add-ligand">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Generate 3D Structure
+                            </button>
+                        </form>
+                        <div class="progress-box hidden" id="ligand-progress">
+                            <span class="spinner"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                            <span id="ligand-progress-text">Generating 3D structure from SMILES...</span>
+                        </div>
+                        <div class="progress-bar-container hidden" id="ligand-progress-bar">
+                            <div class="progress-bar-track">
+                                <div class="progress-bar-fill indeterminate" id="ligand-bar-fill"></div>
+                            </div>
+                            <div class="progress-text"><span id="ligand-elapsed">0s</span> elapsed</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-list"></i> Prepared Ligands</h3>
+                        <span class="badge badge-muted" id="ligand-count-badge">0 files</span>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-items" id="prepared-ligands-list">
+                            <li class="empty-list">No ligands prepared yet.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel: Step 3 (Docking Grid) -->
+        <section class="panel-section" id="panel-step3">
+            <div class="grid-layout">
+                <div class="card card-wide">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-cube"></i> Define Search Box (Grid) Parameters</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">AutoDock Vina searches for binding poses within a 3D box. The box must cover the protein's active site. Preset selections auto-fill known coordinates.</p>
+                        <div class="grid-form-container">
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label for="grid-center-x">Center X (&Aring;)</label>
+                                    <input type="number" step="0.1" id="grid-center-x" value="0.0">
+                                </div>
+                                <div class="input-group">
+                                    <label for="grid-center-y">Center Y (&Aring;)</label>
+                                    <input type="number" step="0.1" id="grid-center-y" value="0.0">
+                                </div>
+                                <div class="input-group">
+                                    <label for="grid-center-z">Center Z (&Aring;)</label>
+                                    <input type="number" step="0.1" id="grid-center-z" value="0.0">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label for="grid-size-x">Size X (&Aring;)</label>
+                                    <input type="number" id="grid-size-x" value="20" min="10" max="40">
+                                </div>
+                                <div class="input-group">
+                                    <label for="grid-size-y">Size Y (&Aring;)</label>
+                                    <input type="number" id="grid-size-y" value="20" min="10" max="40">
+                                </div>
+                                <div class="input-group">
+                                    <label for="grid-size-z">Size Z (&Aring;)</label>
+                                    <input type="number" id="grid-size-z" value="20" min="10" max="40">
+                                </div>
+                            </div>
+                            <div class="form-row single">
+                                <div class="input-group">
+                                    <label for="grid-exhaustiveness">
+                                        Search Exhaustiveness
+                                        <span class="helper-tip">
+                                            <i class="fa-solid fa-circle-info"></i> What's this?
+                                            <span class="helper-popup">
+                                                <strong>Exhaustiveness</strong> controls how thoroughly AutoDock Vina explores possible binding positions. Higher values = more conformations tested per run. <br><br>
+                                                <strong>8 (Standard)</strong> is the recommended default from the Vina authors — good balance of accuracy and speed. Use <strong>4</strong> for initial screening across many ligands, or <strong>16+</strong> for final validation of top hits.
+                                            </span>
+                                        </span>
+                                    </label>
+                                    <select id="grid-exhaustiveness">
+                                        <option value="4">4 — Fast (quick screening, ~1-2 min)</option>
+                                        <option value="8" selected>8 — Standard (recommended, ~3-5 min) <span class="rec-badge">Default</span></option>
+                                        <option value="16">16 — Thorough (higher accuracy, ~6-10 min)</option>
+                                        <option value="32">32 — Rigorous (maximum precision, ~12-20 min)</option>
+                                    </select>
+                                    <span class="estimate-label">Estimated times based on a 20&times;20&times;20 &Aring; box with 1 ligand</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-circle-info"></i> Configuration Summary</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="summary-details">
+                            <div class="detail-row"><span>Grid Center:</span> <strong id="sum-center">(0.0, 0.0, 0.0)</strong></div>
+                            <div class="detail-row"><span>Box Dimensions:</span> <strong id="sum-dimensions">20 x 20 x 20 &Aring;&sup3;</strong></div>
+                            <div class="detail-row"><span>Search Volume:</span> <strong id="sum-volume">8,000 &Aring;&sup3;</strong></div>
+                        </div>
+                        <div class="info-alert warning-box">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span>Incorrect coordinates can dock the ligand into empty space or the wrong binding pocket. Verify active site coordinates for your target.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel: Step 4 (Run Screen) -->
+        <section class="panel-section" id="panel-step4">
+            <div class="grid-layout">
+                <div class="card card-wide">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-flask"></i> Docking Experiment</h3>
+                    </div>
+                    <div class="card-body flex-row">
+                        <div class="flex-col w-50">
+                            <div class="input-group">
+                                <label for="select-protein">1. Choose Prepared Receptor Target</label>
+                                <select id="select-protein">
+                                    <option value="">-- Select Protein --</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="select-ligand">2. Choose Prepared Ligand</label>
+                                <select id="select-ligand">
+                                    <option value="">-- Select Ligand --</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary btn-lg w-100" id="btn-start-docking"><i class="fa-solid fa-play"></i> Run AutoDock Vina Simulation</button>
+                            <div class="progress-bar-container hidden" id="docking-progress-bar">
+                                <div class="progress-bar-track">
+                                    <div class="progress-bar-fill indeterminate" id="docking-bar-fill"></div>
+                                </div>
+                                <div class="progress-text"><span id="docking-elapsed">0s</span> elapsed</div>
+                            </div>
+                        </div>
+                        <div class="flex-col w-50 justify-center">
+                            <div class="active-job-card" id="active-job-details">
+                                <h4>No Active Simulation</h4>
+                                <p class="subtext">Select a protein and ligand above, then click 'Run' to begin.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-wide">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-terminal"></i> AutoDock Vina Log</h3>
+                    </div>
+                    <div class="card-body">
+                        <pre class="console-log" id="console-stream">Ready. Select a protein and ligand, then click 'Run AutoDock Vina Simulation' to start.</pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel: Step 5 (Analyze & 3D) -->
+        <section class="panel-section" id="panel-step5">
+            <div class="grid-layout">
+                <div class="card" id="card-results-list">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-chart-simple"></i> Binding Affinities</h3>
+                        <div style="display:flex;gap:6px">
+                            <button class="btn btn-secondary btn-sm" id="btn-refresh-results"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+                            <button class="btn btn-danger btn-sm" id="btn-clear-results"><i class="fa-solid fa-trash"></i> Clear</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container text-sm">
+                            <table class="data-table" id="results-table">
+                                <thead>
+                                    <tr>
+                                        <th>Target</th>
+                                        <th>Ligand</th>
+                                        <th>Binding Score</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="results-table-body">
+                                    <tr><td colspan="5" class="text-center">No simulation runs recorded yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-wide" id="card-visualizer">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-cubes"></i> 3D Complex Visualizer</h3>
+                        <div class="vis-controls">
+                            <label for="vis-protein-style">Protein:</label>
+                            <select id="vis-protein-style" class="control-select">
+                                <option value="cartoon">Ribbon</option>
+                                <option value="sphere">Spheres</option>
+                                <option value="stick">Sticks</option>
+                                <option value="line">Lines</option>
+                                <option value="none">Hide</option>
+                            </select>
+                            <label for="vis-ligand-style">Ligand:</label>
+                            <select id="vis-ligand-style" class="control-select">
+                                <option value="stick" selected>Sticks</option>
+                                <option value="sphere">Spheres</option>
+                                <option value="line">Lines</option>
+                            </select>
+                            <button class="btn btn-secondary btn-sm" id="btn-reset-view" title="Reset camera"><i class="fa-solid fa-crosshairs"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body relative-body">
+                        <div id="viewer-empty-state" class="loading-overlay">
+                            <div style="text-align:center">
+                                <i class="fa-solid fa-cube" style="font-size:32px;color:var(--text-muted);margin-bottom:8px;display:block"></i>
+                                <span style="color:var(--text-secondary)">No complex loaded<br><small style="color:var(--text-muted)">Click <strong>3D View</strong> in the results table to visualize a docked complex</small></span>
+                            </div>
+                        </div>
+                        <div id="loading-3d" class="loading-overlay hidden">
+                            <i class="fa-solid fa-spinner fa-spin"></i>
+                            <span>Loading structures in 3D viewer...</span>
+                        </div>
+                        <div id="3d-viewer" class="viewer-canvas"></div>
+                        <div class="viewer-legend">
+                            <div><span class="legend-color ribbon"></span> Receptor</div>
+                            <div><span class="legend-color ligand"></span> Docked Ligand</div>
+                            <div id="viewer-surface-toggle" class="hidden">
+                                <input type="checkbox" id="chk-surface">
+                                <label for="chk-surface">Surface</label>
+                            </div>
+                            <div style="margin-left:auto;font-size:11px;color:var(--text-muted)" id="viewer-status">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel: Step 6 (Research Paper) -->
+        <section class="panel-section" id="panel-step6">
+            <div class="grid-layout">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-file-pen"></i> Paper Settings</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="input-group">
+                            <label for="paper-author">Author Name</label>
+                            <input type="text" id="paper-author" value="Student Researcher">
+                        </div>
+                        <div class="input-group">
+                            <label for="paper-institution">School / Institution</label>
+                            <input type="text" id="paper-institution" value="High School">
+                        </div>
+                        <button class="btn btn-primary w-100" id="btn-generate-draft">
+                            <i class="fa-solid fa-file-pdf"></i> Compile Manuscript Draft
+                        </button>
+                        <div class="info-alert info-box mt-10">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>The manuscript auto-populates docking results, methods, and references. Generated in standard academic markdown format.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-wide">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-file-lines"></i> Manuscript Draft</h3>
+                        <div style="display:flex;gap:6px">
+                            <button class="btn btn-secondary btn-sm" id="btn-copy-manuscript"><i class="fa-solid fa-copy"></i> Copy</button>
+                            <button class="btn btn-primary btn-sm" id="btn-download-manuscript"><i class="fa-solid fa-download"></i> Download .md</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <textarea id="manuscript-editor" class="manuscript-textarea" rows="20" placeholder="Click 'Compile Manuscript Draft' to auto-generate a formatted research paper from your docking results..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+<script src="/app/app.js"></script>
+</body>
+</html>

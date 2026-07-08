@@ -1,0 +1,97 @@
+{
+    "2B8L_donepezil": {
+        "protein_id": "2B8L",
+        "ligand_name": "donepezil",
+        "binding_affinity": -5.427,
+        "grid_config": {
+            "center_x": 16.0,
+            "center_y": 10.0,
+            "center_z": 15.0,
+            "size_x": 22,
+            "size_y": 22,
+            "size_z": 22,
+            "exhaustiveness": 8
+        },
+        "status": "completed",
+        "error": "",
+        "timestamp": "2026-07-08T03:57:32.159455",
+        "output_pose": "data/results/2b8l_donepezil_out.pdbqt",
+        "log_file": "data/results/2b8l_donepezil_log.txt"
+    },
+    "2B8L_acetaminophen": {
+        "protein_id": "2B8L",
+        "ligand_name": "acetaminophen",
+        "binding_affinity": 0.0,
+        "grid_config": {
+            "center_x": 0.0,
+            "center_y": 0.0,
+            "center_z": 0.0,
+            "size_x": 20,
+            "size_y": 20,
+            "size_z": 20,
+            "exhaustiveness": 8
+        },
+        "status": "completed",
+        "error": "",
+        "timestamp": "2026-07-08T05:28:58.407208",
+        "output_pose": "data/results/2b8l_acetaminophen_out.pdbqt",
+        "log_file": "data/results/2b8l_acetaminophen_log.txt"
+    },
+    "1LD3_acetaminophen": {
+        "protein_id": "1LD3",
+        "ligand_name": "acetaminophen",
+        "binding_affinity": null,
+        "grid_config": {
+            "center_x": 14.8,
+            "center_y": 17.5,
+            "center_z": 94.6,
+            "size_x": 22,
+            "size_y": 22,
+            "size_z": 22,
+            "exhaustiveness": 8
+        },
+        "status": "running",
+        "error": "",
+        "timestamp": "2026-07-08T14:03:41.985903",
+        "output_pose": "data/results/1ld3_acetaminophen_out.pdbqt",
+        "log_file": "data/results/1ld3_acetaminophen_log.txt"
+    },
+    "1LD3_aspirin": {
+        "protein_id": "1LD3",
+        "ligand_name": "aspirin",
+        "binding_affinity": null,
+        "grid_config": {
+            "center_x": 0.0,
+            "center_y": 0.0,
+            "center_z": 0.0,
+            "size_x": 20,
+            "size_y": 20,
+            "size_z": 20,
+            "exhaustiveness": 8
+        },
+        "status": "failed",
+        "error": "AutoDock Vina failed with return code 1.\nStderr: \n\nPDBQT parsing error: Atom type ZN is not a valid AutoDock type (atom types are case-sensitive).\n > ATOM   2487 ZN   ZN  A 500       0.155  26.378   7.229  0.94 25.84     0.000  ZN\n",
+        "timestamp": "2026-07-08T05:28:50.760380",
+        "output_pose": "data/results/1ld3_aspirin_out.pdbqt",
+        "log_file": "data/results/1ld3_aspirin_log.txt"
+    },
+    "2B8L_ibuprofen": {
+        "protein_id": "2B8L",
+        "ligand_name": "ibuprofen",
+        "binding_affinity": -3.857,
+        "grid_config": {
+            "center_x": 16.0,
+            "center_y": 10.0,
+            "center_z": 15.0,
+            "size_x": 22,
+            "size_y": 22,
+            "size_z": 22,
+            "exhaustiveness": 16
+        },
+        "status": "completed",
+        "error": "",
+        "timestamp": "2026-07-08T05:04:30.435561",
+        "output_pose": "data/results/2b8l_ibuprofen_out.pdbqt",
+        "log_file": "data/results/2b8l_ibuprofen_log.txt"
+    }
+}
