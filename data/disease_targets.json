@@ -1,0 +1,14 @@
+{
+  "project": "Jeen Lab",
+  "purpose": "Open-data research map for genetics, disease targets, protein structures, and computational docking.",
+  "limits": [
+    "Docking is a virtual-screening method, not proof of efficacy or safety.",
+    "Genetic inheritance views are educational risk models, not diagnosis.",
+    "Any genome editing, embryo editing, germline work, or medical use requires qualified clinical, ethical, legal, and laboratory oversight."
+  ],
+  "sources": {
+    "RCSB PDB": "https://www.rcsb.org/",
+    "AlphaFold DB": "https://alphafold.ebi.ac.uk/",
+    "PubChem": "https://pubchem.ncbi.nlm.nih.gov/"
+  }
+}

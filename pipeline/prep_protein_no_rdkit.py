@@ -13,8 +13,8 @@ REMOVE_RESIDUES = {"HOH", "WAT", "DOD", "ACT", "EDT", "PEG", "FMT", "GOL", "SO4"
 ELEMENT_TO_AD4_RECEPTOR = {
     'C': 'C', 'N': 'N', 'O': 'O', 'S': 'S',
     'P': 'P', 'F': 'F', 'Cl': 'Cl', 'Br': 'Br', 'I': 'I',
-    'H': 'H', 'CA': 'CA', 'MG': 'MG', 'MN': 'MN',
-    'ZN': 'ZN', 'FE': 'FE', 'CU': 'CU', 'NA': 'NA', 'K': 'K',
+    'H': 'H', 'CA': 'Ca', 'MG': 'Mg', 'MN': 'Mn',
+    'ZN': 'Zn', 'FE': 'Fe', 'CU': 'Cu', 'NA': 'Na', 'K': 'K',
 }
 
 

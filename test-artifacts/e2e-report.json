@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-08-11T17:12:02.073Z",
+  "baseUrl": "http://127.0.0.1:8000",
+  "checks": [
+    "API status reports Vina and pipeline ready.",
+    "Disease atlas API returns open-data target metadata.",
+    "Dashboard loads and environment badges are online.",
+    "Disease Atlas renders disease/gene/protein cards and inheritance canvas.",
+    "Protein target download and preparation works for real RCSB PDB ID 1CRN.",
+    "Custom ligand preparation works using real PubChem-backed SMILES input.",
+    "Docking grid inputs update without UI errors.",
+    "AutoDock Vina completed 2B8L + aspirin with -3.382 kcal/mol.",
+    "Analysis table and 3D viewer load the docked complex.",
+    "Research manuscript draft uses real completed local runs and no fake example score.",
+    "Path traversal probe is blocked."
+  ],
+  "screenshots": [
+    "01-dashboard.png",
+    "02-disease-atlas.png",
+    "03-protein-target-download.png",
+    "04-ligand-library-custom.png",
+    "05-docking-grid.png",
+    "06-docking-running.png",
+    "07-analysis-3d.png",
+    "08-manuscript.png"
+  ],
+  "docking": {
+    "protein_id": "2B8L",
+    "ligand_name": "aspirin",
+    "binding_affinity": -3.382,
+    "grid_config": {
+      "center_x": 16,
+      "center_y": 10,
+      "center_z": 15,
+      "size_x": 22,
+      "size_y": 22,
+      "size_z": 22,
+      "exhaustiveness": 4
+    },
+    "status": "completed",
+    "error": "",
+    "timestamp": "2026-08-11T22:42:16.077895",
+    "output_pose": "data/results/2b8l_aspirin_out.pdbqt",
+    "log_file": "data/results/2b8l_aspirin_log.txt"
+  },
+  "finishedAt": "2026-08-11T17:12:18.655Z"
+}

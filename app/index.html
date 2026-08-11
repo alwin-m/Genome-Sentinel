@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Genome Sentinel — Molecular Docking Suite</title>
+    <title>Jeen Lab — Computational Genetics & Docking Suite</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/app/style.css">
     <script src="/app/3Dmol-min.js"></script>
@@ -15,8 +15,8 @@
     <div class="onboarding-modal">
         <div class="onboarding-header">
             <div class="app-icon"><i class="fa-solid fa-dna"></i></div>
-            <h1>Welcome to Genome Sentinel</h1>
-            <p>A complete molecular docking workspace for drug discovery research. This guide walks you through the 6-step workflow.</p>
+            <h1>Welcome to Jeen Lab</h1>
+            <p>A computational genetics and molecular docking workspace. The workflow uses open scientific data and clearly separates research signals from medical proof.</p>
         </div>
         <div class="onboarding-body">
             <div class="onboarding-step">
@@ -77,12 +77,16 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
         <div class="logo-area">
-            <h2>Genome<span>Sentinel</span><span class="version-tag">v1.0</span></h2>
+            <h2>Jeen<span>Lab</span><span class="version-tag">research</span></h2>
         </div>
         <nav class="nav-menu">
             <button class="nav-btn active" data-target="panel-dashboard">
                 <i class="fa-solid fa-gauge-high"></i> Dashboard
                 <span class="step-badge">Hub</span>
+            </button>
+            <button class="nav-btn" data-target="panel-atlas">
+                <i class="fa-solid fa-dna"></i> Disease Atlas
+                <span class="step-badge">Open Data</span>
             </button>
             <button class="nav-btn" data-target="panel-step1">
                 <i class="fa-solid fa-shield-virus"></i> 1. Protein Target
@@ -110,7 +114,7 @@
             </button>
         </nav>
         <div class="sidebar-footer">
-            Molecular Docking Suite &bull; Local Host
+            Research Suite &bull; Local Host
         </div>
     </aside>
 
@@ -167,8 +171,8 @@
                 <div class="card card-wide">
                     <div class="card-body">
                         <div class="workspace-welcome">
-                            <h2>Molecular Docking Workspace</h2>
-                            <p>Genome Sentinel performs virtual screening of drug candidates against disease target proteins using AutoDock Vina. Follow the 6-step workflow from left to right, or use the dashboard to monitor your environment and results.</p>
+                            <h2>Jeen Lab Research Workspace</h2>
+                            <p>Jeen Lab combines open protein data, disease target notes, inheritance visualization, AutoDock Vina screening, and 3D molecular inspection. Results are computational evidence only, not diagnosis, prevention, treatment, or proof of cure.</p>
                             <div class="quick-actions">
                                 <button class="btn btn-primary" id="btn-quick-start"><i class="fa-solid fa-bolt"></i> Quick Start Guide</button>
                                 <button class="btn btn-secondary" id="btn-check-status"><i class="fa-solid fa-arrows-rotate"></i> Refresh Status</button>
@@ -213,6 +217,17 @@
                     </div>
                 </div>
 
+                <div class="card card-wide research-guardrail">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-shield-heart"></i> Research Integrity Guardrails</h3>
+                    </div>
+                    <div class="card-body guardrail-grid">
+                        <div><strong>Real data</strong><span>RCSB PDB, AlphaFold DB, PubChem, and local Vina logs.</span></div>
+                        <div><strong>Computed signal</strong><span>Docking scores rank hypotheses. They do not prove a medicine works.</span></div>
+                        <div><strong>Genome ethics</strong><span>No autonomous treatment, germline editing, or clinical claim is made by this tool.</span></div>
+                    </div>
+                </div>
+
                 <!-- Local Library Stats -->
                 <div class="card">
                     <div class="card-header">
@@ -231,6 +246,60 @@
                             <span class="stat-number" id="stat-docking-count">0</span>
                             <span class="stat-label">Docking Runs</span>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel: Disease Atlas -->
+        <section class="panel-section" id="panel-atlas">
+            <div class="grid-layout">
+                <div class="card card-wide">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-dna"></i> Disease, Gene & Protein Atlas</h3>
+                        <button class="btn btn-secondary btn-sm" id="btn-load-atlas"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Explore disease-linked genes and protein targets from open scientific databases. Use AlphaFold downloads when no local PDB structure is available.</p>
+                        <div class="atlas-grid" id="atlas-list"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-cloud-arrow-down"></i> AlphaFold Protein Model</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="input-group">
+                            <label for="input-uniprot">UniProt Accession</label>
+                            <input type="text" id="input-uniprot" placeholder="e.g. P22309">
+                        </div>
+                        <div class="input-group">
+                            <label for="input-af-label">Local Target Label</label>
+                            <input type="text" id="input-af-label" placeholder="e.g. ugt1a1">
+                        </div>
+                        <button class="btn btn-primary w-100" id="btn-download-alphafold"><i class="fa-solid fa-database"></i> Fetch AlphaFold Model</button>
+                        <div class="info-alert info-box">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>AlphaFold models are predicted structures. Check confidence and suitability before docking.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-family"></i> Inheritance Visualizer</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="input-group">
+                            <label for="inheritance-mode">Inheritance Pattern</label>
+                            <select id="inheritance-mode">
+                                <option value="recessive">Autosomal recessive carrier pair</option>
+                                <option value="dominant">Autosomal dominant affected parent</option>
+                            </select>
+                        </div>
+                        <canvas id="inheritance-canvas" class="inheritance-canvas" width="520" height="320"></canvas>
+                        <p class="card-desc mt-10" id="inheritance-summary">Select a pattern to view the expected genotype split.</p>
                     </div>
                 </div>
             </div>

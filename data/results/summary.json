@@ -2,7 +2,7 @@
     "2B8L_donepezil": {
         "protein_id": "2B8L",
         "ligand_name": "donepezil",
-        "binding_affinity": -5.427,
+        "binding_affinity": -5.382,
         "grid_config": {
             "center_x": 16.0,
             "center_y": 10.0,
@@ -10,11 +10,11 @@
             "size_x": 22,
             "size_y": 22,
             "size_z": 22,
-            "exhaustiveness": 8
+            "exhaustiveness": 1
         },
         "status": "completed",
         "error": "",
-        "timestamp": "2026-07-08T03:57:32.159455",
+        "timestamp": "2026-08-11T21:05:31.267387",
         "output_pose": "data/results/2b8l_donepezil_out.pdbqt",
         "log_file": "data/results/2b8l_donepezil_log.txt"
     },
@@ -50,8 +50,8 @@
             "size_z": 22,
             "exhaustiveness": 8
         },
-        "status": "running",
-        "error": "",
+        "status": "failed",
+        "error": "Marked failed: job was still running after server restart or timeout.",
         "timestamp": "2026-07-08T14:03:41.985903",
         "output_pose": "data/results/1ld3_acetaminophen_out.pdbqt",
         "log_file": "data/results/1ld3_acetaminophen_log.txt"
@@ -93,5 +93,24 @@
         "timestamp": "2026-07-08T05:04:30.435561",
         "output_pose": "data/results/2b8l_ibuprofen_out.pdbqt",
         "log_file": "data/results/2b8l_ibuprofen_log.txt"
+    },
+    "2B8L_aspirin": {
+        "protein_id": "2B8L",
+        "ligand_name": "aspirin",
+        "binding_affinity": -3.382,
+        "grid_config": {
+            "center_x": 16.0,
+            "center_y": 10.0,
+            "center_z": 15.0,
+            "size_x": 22,
+            "size_y": 22,
+            "size_z": 22,
+            "exhaustiveness": 4
+        },
+        "status": "completed",
+        "error": "",
+        "timestamp": "2026-08-11T22:42:16.077895",
+        "output_pose": "data/results/2b8l_aspirin_out.pdbqt",
+        "log_file": "data/results/2b8l_aspirin_log.txt"
     }
 }

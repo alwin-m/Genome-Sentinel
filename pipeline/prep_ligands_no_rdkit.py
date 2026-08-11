@@ -8,6 +8,7 @@ import time
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LIGANDS_DIR = os.path.join(BASE_DIR, "data", "ligands")
+SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
 
 PRESETS = {
     "donepezil": {
@@ -149,7 +150,7 @@ def write_ligand_pdbqt(atoms, output_path):
     with open(output_path, 'w') as f:
         f.write("ROOT\n")
         for idx, (element, x, y, z) in enumerate(atoms, start=1):
-            ad4_type = ELEMENT_TO_AD4.get(element, 'CA')
+            ad4_type = ELEMENT_TO_AD4.get(element, 'C')
             atom_name = f"{element}{idx}"
             charge = ELEMENT_CHARGE.get(element, 0.0)
 
@@ -176,6 +177,10 @@ def write_ligand_pdbqt(atoms, output_path):
 
 def prepare_ligand(name, smiles, output_dir):
     name = name.lower().replace(" ", "_")
+    if not SAFE_NAME_RE.match(name):
+        return {"success": False, "error": "Invalid ligand name"}
+    if not smiles or len(smiles) > 512:
+        return {"success": False, "error": "Invalid SMILES input"}
     output_path = os.path.join(output_dir, f"{name}.pdbqt")
 
     if os.path.exists(output_path):

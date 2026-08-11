@@ -13,6 +13,7 @@ const GenomeSentinel = {
         viewer3D: null,
         currentComplex: null,
         surfaceVisible: false,
+        diseaseTargets: [],
         stepStatus: [true, false, false, false, false, false, false]
     },
 
@@ -38,13 +39,28 @@ const GenomeSentinel = {
         this.bindEvents();
         this.updateGridSummary();
         this.checkStatus();
+        this.loadDiseaseAtlas();
+        this.renderInheritance();
         this.fetchResults().then(d => this.updateResultsTable(d));
         this.handleOnboarding();
     },
 
+    escapeHTML(value) {
+        return String(value ?? "").replace(/[&<>"']/g, char => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        }[char]));
+    },
+
     handleOnboarding() {
+        const overlay = document.getElementById("onboarding-overlay");
         if (!localStorage.getItem("gs_onboarding_done")) {
-            document.getElementById("onboarding-overlay").classList.remove("hidden");
+            overlay.classList.remove("hidden");
+        } else {
+            overlay.classList.add("hidden");
         }
     },
 
@@ -77,6 +93,7 @@ const GenomeSentinel = {
     updateHeader(tabId) {
         const titles = {
             "panel-dashboard": { title: "Dashboard", sub: "Overview of your drug discovery environment and local library." },
+            "panel-atlas": { title: "Disease Atlas", sub: "Open-data disease targets, AlphaFold models, and inheritance visualization." },
             "panel-step1": { title: "1. Protein Target Selection", sub: "Choose or download a target protein structure for docking." },
             "panel-step2": { title: "2. Ligand Library Preparation", sub: "Generate 3D molecular structures from SMILES notation." },
             "panel-step3": { title: "3. Docking Grid Configuration", sub: "Define the search box around the protein active site." },
@@ -92,6 +109,7 @@ const GenomeSentinel = {
     updateStepProgress(tabId) {
         const stepMap = {
             "panel-dashboard": 0,
+            "panel-atlas": 0,
             "panel-step1": 1,
             "panel-step2": 2,
             "panel-step3": 3,
@@ -176,6 +194,111 @@ const GenomeSentinel = {
         }
     },
 
+    async loadDiseaseAtlas() {
+        try {
+            const res = await fetch("/api/disease_targets");
+            const data = await res.json();
+            this.state.diseaseTargets = data.targets || [];
+            this.renderDiseaseAtlas(data.disclaimer || "");
+        } catch (err) {
+            console.error("Disease atlas error:", err);
+            const el = document.getElementById("atlas-list");
+            if (el) el.innerHTML = '<div class="empty-list">Could not load disease atlas.</div>';
+        }
+    },
+
+    renderDiseaseAtlas(disclaimer) {
+        const el = document.getElementById("atlas-list");
+        if (!el) return;
+        if (this.state.diseaseTargets.length === 0) {
+            el.innerHTML = '<div class="empty-list">No disease targets loaded.</div>';
+            return;
+        }
+        el.innerHTML = this.state.diseaseTargets.map(item => {
+            const targetRows = (item.targets || []).map(target => {
+                const afButton = target.uniprot ? `<button class="btn btn-secondary btn-sm btn-atlas-af" data-uniprot="${this.escapeHTML(target.uniprot)}" data-label="${this.escapeHTML((target.gene || target.uniprot).toLowerCase())}"><i class="fa-solid fa-database"></i> AlphaFold</button>` : "";
+                const pdbText = target.pdb ? `<span class="pdb-tag">${this.escapeHTML(target.pdb)}</span>` : "";
+                return `<div class="atlas-target">
+                    <div><strong>${this.escapeHTML(target.gene)}</strong> ${pdbText}<br><span>${this.escapeHTML(target.protein)} &bull; ${this.escapeHTML(target.structure_source)}</span></div>
+                    ${afButton}
+                </div>`;
+            }).join("");
+            return `<article class="atlas-card">
+                <div class="atlas-card-head">
+                    <h4>${this.escapeHTML(item.disease)}</h4>
+                    <span>${this.escapeHTML((item.genes || []).join(", "))}</span>
+                </div>
+                <p>${this.escapeHTML(item.inheritance)}</p>
+                <div class="atlas-targets">${targetRows}</div>
+                <small>${this.escapeHTML(item.research_note)}</small>
+            </article>`;
+        }).join("") + `<div class="info-alert warning-box atlas-disclaimer"><i class="fa-solid fa-triangle-exclamation"></i><span>${this.escapeHTML(disclaimer)}</span></div>`;
+
+        document.querySelectorAll(".btn-atlas-af").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.getElementById("input-uniprot").value = btn.getAttribute("data-uniprot");
+                document.getElementById("input-af-label").value = btn.getAttribute("data-label");
+            });
+        });
+    },
+
+    renderInheritance() {
+        const canvas = document.getElementById("inheritance-canvas");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        const mode = document.getElementById("inheritance-mode")?.value || "recessive";
+        const summary = document.getElementById("inheritance-summary");
+        const cases = mode === "dominant"
+            ? [
+                { label: "Unaffected", genotype: "aa", pct: 50, color: "#10b981" },
+                { label: "At-risk", genotype: "Aa", pct: 50, color: "#f59e0b" }
+            ]
+            : [
+                { label: "Unaffected", genotype: "AA", pct: 25, color: "#10b981" },
+                { label: "Carrier", genotype: "Aa", pct: 50, color: "#3b82f6" },
+                { label: "Affected", genotype: "aa", pct: 25, color: "#ef4444" }
+            ];
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "600 16px Segoe UI";
+        ctx.fillStyle = "#e5eefb";
+        ctx.fillText(mode === "dominant" ? "Autosomal dominant model" : "Autosomal recessive carrier model", 24, 34);
+
+        let x = 32;
+        cases.forEach(item => {
+            const width = Math.max(90, item.pct * 3.8);
+            ctx.fillStyle = item.color;
+            ctx.fillRect(x, 82, width, 92);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "700 24px Segoe UI";
+            ctx.fillText(item.pct + "%", x + 16, 124);
+            ctx.font = "600 14px Segoe UI";
+            ctx.fillText(item.genotype, x + 16, 150);
+            ctx.fillStyle = "#cbd5e1";
+            ctx.font = "12px Segoe UI";
+            ctx.fillText(item.label, x + 16, 198);
+            x += width + 18;
+        });
+
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(70, 260);
+        ctx.bezierCurveTo(165, 220, 275, 292, 438, 238);
+        ctx.stroke();
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "12px Segoe UI";
+        ctx.fillText("Expected probability split per child, not a prediction for a specific person.", 24, 300);
+
+        if (summary) {
+            summary.innerText = mode === "dominant"
+                ? "One affected heterozygous parent and one unaffected parent: about 50% at-risk and 50% unaffected per child."
+                : "Two carrier parents: about 25% unaffected, 50% carrier, and 25% affected per child.";
+        }
+    },
+
     updateStatusUI() {
         const vinaEl = document.getElementById("status-vina");
         const envEl = document.getElementById("status-env");
@@ -208,8 +331,8 @@ const GenomeSentinel = {
             pList.innerHTML = '<li class="empty-list">No proteins prepared yet.</li>';
         } else {
             pList.innerHTML = this.state.proteins.map(p =>
-                `<li><span><i class="fa-solid fa-circle-check" style="color:var(--color-success)"></i> <strong>${p}</strong> (PDBQT)</span>
-                  <span class="actions"><i class="fa-solid fa-trash btn-delete-protein" data-id="${p}"></i></span></li>`
+                `<li><span><i class="fa-solid fa-circle-check" style="color:var(--color-success)"></i> <strong>${this.escapeHTML(p)}</strong> (PDBQT)</span>
+                  <span class="actions"><i class="fa-solid fa-trash btn-delete-protein" data-id="${this.escapeHTML(p)}"></i></span></li>`
             ).join("");
         }
 
@@ -219,8 +342,8 @@ const GenomeSentinel = {
             lList.innerHTML = '<li class="empty-list">No ligands prepared yet.</li>';
         } else {
             lList.innerHTML = this.state.ligands.map(l =>
-                `<li><span><i class="fa-solid fa-circle-check" style="color:var(--color-success)"></i> <strong>${l}</strong> (PDBQT)</span>
-                  <span class="actions"><i class="fa-solid fa-trash btn-delete-ligand" data-id="${l}"></i></span></li>`
+                `<li><span><i class="fa-solid fa-circle-check" style="color:var(--color-success)"></i> <strong>${this.escapeHTML(l)}</strong> (PDBQT)</span>
+                  <span class="actions"><i class="fa-solid fa-trash btn-delete-ligand" data-id="${this.escapeHTML(l)}"></i></span></li>`
             ).join("");
         }
     },
@@ -262,8 +385,8 @@ const GenomeSentinel = {
             const ready = this.state.ligands.includes(l.name);
             return `<tr>
                 <td><strong>${l.name.charAt(0).toUpperCase() + l.name.slice(1)}</strong></td>
-                <td><code style="font-family:var(--font-mono);font-size:10px;color:var(--text-secondary)">${l.smiles.substring(0, 28)}...</code></td>
-                <td>${l.context}</td>
+                <td><code style="font-family:var(--font-mono);font-size:10px;color:var(--text-secondary)">${this.escapeHTML(l.smiles.substring(0, 28))}...</code></td>
+                <td>${this.escapeHTML(l.context)}</td>
                 <td>${ready ? '<span class="badge badge-success"><i class="fa-solid fa-check"></i> Ready</span>' : '<span class="badge badge-muted">Not Prepared</span>'}</td>
             </tr>`;
         }).join("");
@@ -274,9 +397,9 @@ const GenomeSentinel = {
         const selL = document.getElementById("select-ligand");
         const pv = selP.value, lv = selL.value;
         selP.innerHTML = '<option value="">-- Select Protein --</option>' +
-            this.state.proteins.map(p => `<option value="${p}">${p}</option>`).join("");
+            this.state.proteins.map(p => `<option value="${this.escapeHTML(p)}">${this.escapeHTML(p)}</option>`).join("");
         selL.innerHTML = '<option value="">-- Select Ligand --</option>' +
-            this.state.ligands.map(l => `<option value="${l}">${l.charAt(0).toUpperCase() + l.slice(1)}</option>`).join("");
+            this.state.ligands.map(l => `<option value="${this.escapeHTML(l)}">${this.escapeHTML(l.charAt(0).toUpperCase() + l.slice(1))}</option>`).join("");
         selP.value = this.state.proteins.includes(pv) ? pv : "";
         selL.value = this.state.ligands.includes(lv) ? lv : "";
     },
@@ -368,6 +491,28 @@ const GenomeSentinel = {
 
         // Check status
         document.getElementById("btn-check-status").addEventListener("click", () => this.checkStatus());
+        document.getElementById("btn-load-atlas").addEventListener("click", () => this.loadDiseaseAtlas());
+        document.getElementById("inheritance-mode").addEventListener("change", () => this.renderInheritance());
+        document.getElementById("btn-download-alphafold").addEventListener("click", async () => {
+            const uniprot = document.getElementById("input-uniprot").value.trim().toUpperCase();
+            const label = document.getElementById("input-af-label").value.trim().toLowerCase();
+            if (!uniprot || !label) { alert("Enter both a UniProt accession and local label."); return; }
+            const res = await fetch("/api/download_alphafold", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ uniprot, label })
+            });
+            const data = await res.json();
+            alert(data.success ? data.message : ("Failed: " + data.error));
+            if (data.success) {
+                this.pollUntil(
+                    () => this.state.proteins.includes(label.toUpperCase()),
+                    3000, 20,
+                    () => this.checkStatus(),
+                    () => this.checkStatus()
+                );
+            }
+        });
 
         // Download protein
         document.getElementById("btn-download-protein").addEventListener("click", async () => {
@@ -530,7 +675,7 @@ const GenomeSentinel = {
 
             jobCard.className = "active-job-card running";
             jobCard.innerHTML = `<h4><i class="fa-solid fa-spinner fa-spin"></i> Simulation Running...</h4>
-                <p class="subtext">Target: <strong>${protein}</strong> | Ligand: <strong>${ligand}</strong></p>
+                <p class="subtext">Target: <strong>${this.escapeHTML(protein)}</strong> | Ligand: <strong>${this.escapeHTML(ligand)}</strong></p>
                 <small>Search box at (${cx}, ${cy}, ${cz}) &mdash; ${sx}&times;${sy}&times;${sz} &Aring;</small>`;
             btn.disabled = true;
             barContainer.classList.remove("hidden");
@@ -587,7 +732,7 @@ const GenomeSentinel = {
                             } else {
                                 jobCard.className = "active-job-card";
                                 jobCard.innerHTML = `<h4 style="color:var(--color-danger)"><i class="fa-solid fa-circle-xmark"></i> Simulation Failed</h4>
-                                    <p class="subtext">${(job && job.error) || "Unknown error"}</p>`;
+                                    <p class="subtext">${this.escapeHTML((job && job.error) || "Unknown error")}</p>`;
                             }
                             this.state.currentJob = null;
                         }
@@ -711,12 +856,16 @@ const GenomeSentinel = {
         tbody.innerHTML = keys.map(k => {
             const r = results[k];
             const strong = r.binding_affinity && r.binding_affinity <= -7.0;
+            const proteinId = this.escapeHTML(r.protein_id);
+            const ligandName = this.escapeHTML(r.ligand_name);
+            const ligandLabel = this.escapeHTML(r.ligand_name.charAt(0).toUpperCase() + r.ligand_name.slice(1));
+            const status = this.escapeHTML(r.status);
             return `<tr>
-                <td><strong>${r.protein_id}</strong></td>
-                <td>${r.ligand_name.charAt(0).toUpperCase() + r.ligand_name.slice(1)}</td>
+                <td><strong>${proteinId}</strong></td>
+                <td>${ligandLabel}</td>
                 <td${strong ? ' style="color:var(--color-success);font-weight:700"' : ''}>${r.binding_affinity !== null ? r.binding_affinity.toFixed(1) + " kcal/mol" : "N/A"}</td>
-                <td><span class="badge ${r.status === 'completed' ? 'badge-success' : r.status === 'running' ? 'badge-warning' : 'badge-danger'}">${r.status}</span></td>
-                <td>${r.status === 'completed' ? `<button class="btn btn-secondary btn-sm btn-load-3d" data-protein="${r.protein_id}" data-ligand="${r.ligand_name}"><i class="fa-solid fa-cube"></i> 3D View</button>` : 'N/A'}</td>
+                <td><span class="badge ${r.status === 'completed' ? 'badge-success' : r.status === 'running' ? 'badge-warning' : 'badge-danger'}">${status}</span></td>
+                <td>${r.status === 'completed' ? `<button class="btn btn-secondary btn-sm btn-load-3d" data-protein="${proteinId}" data-ligand="${ligandName}"><i class="fa-solid fa-cube"></i> 3D View</button>` : 'N/A'}</td>
             </tr>`;
         }).join("");
 
@@ -729,8 +878,11 @@ const GenomeSentinel = {
 
     // 3D VISUALIZER
     load3DComplex(proteinId, ligandName) {
+        if (!this.state.viewer3D) {
+            this.init3DViewer();
+        }
         const viewer = this.state.viewer3D;
-        if (!viewer) { alert("3D viewer not initialized. Please navigate to the Analysis tab."); return; }
+        if (!viewer) { alert("3D viewer could not initialize. Please try again from the Analysis tab."); return; }
         const loader = document.getElementById("loading-3d");
         const emptyState = document.getElementById("viewer-empty-state");
         const statusEl = document.getElementById("viewer-status");
@@ -821,9 +973,19 @@ const GenomeSentinel = {
         const author = document.getElementById("paper-author").value || "Student Researcher";
         const institution = document.getElementById("paper-institution").value || "High School Department of Science";
         const completedRuns = Object.values(this.state.results).filter(r => r.status === "completed");
+        if (completedRuns.length === 0) {
+            document.getElementById("manuscript-editor").value = [
+                "# Jeen Lab Computational Screening Report",
+                "",
+                "No completed docking runs are available yet.",
+                "",
+                "Run at least one AutoDock Vina experiment before generating a manuscript. Jeen Lab does not insert example binding scores into research reports."
+            ].join("\n");
+            return;
+        }
         completedRuns.sort((a, b) => (a.binding_affinity || 0) - (b.binding_affinity || 0));
         const targetNames = [...new Set(completedRuns.map(r => r.protein_id))];
-        const primaryTarget = targetNames[0] || "BACE1";
+        const primaryTarget = targetNames[0];
         const cx = document.getElementById("grid-center-x").value || "16.0";
         const cy = document.getElementById("grid-center-y").value || "10.0";
         const cz = document.getElementById("grid-center-z").value || "15.0";
@@ -833,11 +995,7 @@ const GenomeSentinel = {
         completedRuns.forEach((r, idx) => {
             tableRows += `| ${idx + 1} | ${r.protein_id} | ${r.ligand_name.toUpperCase()} | ${r.binding_affinity.toFixed(1)} kcal/mol | ${r.binding_affinity <= -7.0 ? "Strong Binding" : "Moderate Interaction"} |\n`;
         });
-        if (completedRuns.length === 0) {
-            tableRows = "| 1 | BACE1 (Example) | DONEPEZIL | -9.4 kcal/mol | Reference / Standard |\n";
-        }
-
-        const template = `# Computational Molecular Docking Analysis of Novel Inhibitors Against Target Protein ${primaryTarget}
+        const template = `# Jeen Lab Computational Docking Analysis for Target ${primaryTarget}
 
 **Author:** ${author}
 **Affiliation:** ${institution}
@@ -846,7 +1004,7 @@ const GenomeSentinel = {
 ---
 
 ## Abstract
-Computer-aided drug design is a pivotal methodology in modern pharmacology, drastically reducing early-stage discovery timelines. In this study, we investigated ligand interactions with the target protein **${primaryTarget}** associated with therapeutic pathways. Utilizing virtual screening protocols powered by AutoDock Vina, we simulated the binding conformations of multiple small-molecule candidates. We identified several compound hits exhibiting strong binding affinities, notably **${completedRuns[0] ? completedRuns[0].ligand_name.toUpperCase() : "Donepezil"}** with a score of **${completedRuns[0] ? completedRuns[0].binding_affinity.toFixed(1) : "-9.4"} kcal/mol**. These findings provide computational validation for the therapeutic repurposing or development of these scaffolds.
+Computer-aided drug design can prioritize hypotheses for laboratory follow-up. In this study, Jeen Lab used AutoDock Vina to simulate ligand binding against **${primaryTarget}**. The best observed computational score in this local run was **${completedRuns[0].ligand_name.toUpperCase()}** at **${completedRuns[0].binding_affinity.toFixed(1)} kcal/mol**. This is a screening result only and is not evidence of clinical efficacy, safety, prevention, or cure.
 
 ## Introduction
 Diseases are driven by specific cellular proteins displaying abnormal functioning. Pharmacological agents act by binding into pockets, blocking active active sites, or modulating the receptor conformation. Prior to real-world laboratory biological assays, computational screening screens libraries to evaluate geometric and chemical complementarity.
@@ -866,10 +1024,10 @@ The virtual screening simulations yielded binding energies indicating the relati
 ${tableRows}
 *Table 1: AutoDock Vina predicted binding energies.*
 
-The compound **${completedRuns[0] ? completedRuns[0].ligand_name.toUpperCase() : "Donepezil"}** displayed the most favorable binding affinity. Visual inspection reveals strong electrostatic and hydrophobic interactions matching pocket residues.
+The compound **${completedRuns[0].ligand_name.toUpperCase()}** displayed the most favorable predicted binding affinity among completed local runs. Visual inspection should be used to check pocket placement, steric clashes, and whether the grid actually covers the intended active site.
 
 ## Discussion
-Our in-silico screening suggests that several compounds bind effectively to **${primaryTarget}**. The top candidates score below the threshold of -7.0 kcal/mol, establishing stable predicted complexes.
+This in-silico screen suggests which compounds may deserve deeper investigation against **${primaryTarget}**. Docking scores do not establish stable biological complexes, target engagement in cells, toxicity, pharmacokinetics, or disease modification.
 
 **Limitations**: Docking calculations represent idealized, static approximations. Factors such as dynamic protein flexibility, solvent entropy, and cellular absorption parameters cannot be fully predicted by docking alone. In vitro cellular assays are required to confirm biological efficacy.
 
