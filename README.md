@@ -220,4 +220,4 @@ Genome Sentinel integrates with **NVIDIA GenMol NIM** for AI-powered de novo mol
 
 ## License
 
-MIT
+MIt
