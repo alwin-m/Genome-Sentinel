@@ -1,5 +1,6 @@
 const GenomeSentinel = {
     state: {
+        tourIndex: 0,
         vinaInstalled: false,
         rdkitInstalled: false,
         meekoInstalled: false,
@@ -46,13 +47,142 @@ const GenomeSentinel = {
         if (!localStorage.getItem("gs_onboarding_done")) {
             document.getElementById("onboarding-overlay").classList.remove("hidden");
         }
+        this.bindTourEvents();
+        this.refreshVersion();
     },
+
+    refreshVersion() {
+        fetch("/api/info").then(r => r.ok ? r.json() : null).then(info => {
+            if (!info) return;
+            const version = "v" + (info.version || "1.1.0");
+            const sidebar = document.getElementById("sidebar-version");
+            const header = document.getElementById("app-version");
+            if (sidebar) sidebar.textContent = version;
+            if (header) header.textContent = version;
+            document.title = "Genome Sentinel " + version + " — Molecular Docking Suite";
+        }).catch(() => {});
+    },
+
+    bindTourEvents() {
+        const next = document.getElementById("tour-next");
+        const back = document.getElementById("tour-back");
+        const skip = document.getElementById("tour-skip");
+        const help = document.getElementById("btn-show-help");
+        const quick = document.getElementById("btn-quick-start");
+        if (next) next.addEventListener("click", () => this.nextTourStep());
+        if (back) back.addEventListener("click", () => this.previousTourStep());
+        if (skip) skip.addEventListener("click", () => this.finishTour(false));
+        if (help) help.addEventListener("click", () => this.openWelcomeGuide());
+        if (quick) quick.addEventListener("click", () => this.openWelcomeGuide());
+        window.addEventListener("resize", () => {
+            const layer = document.getElementById("tour-layer");
+            if (layer && !layer.classList.contains("hidden")) this.positionTour();
+        });
+        document.addEventListener("keydown", (event) => {
+            const layer = document.getElementById("tour-layer");
+            if (!layer || layer.classList.contains("hidden")) return;
+            if (event.key === "Escape") this.finishTour(false);
+            if (event.key === "ArrowRight" || event.key === "Enter") this.nextTourStep();
+            if (event.key === "ArrowLeft") this.previousTourStep();
+        });
+    },
+
+    openWelcomeGuide() {
+        this.finishTour(false);
+        const overlay = document.getElementById("onboarding-overlay");
+        if (overlay) overlay.classList.remove("hidden");
+    },
+
+    tourSteps: [
+        { target: "quick-start", title: "Quick Start Guide", text: "This is your starting point. The guide can be reopened any time from the question-mark button.", tab: "panel-dashboard" },
+        { target: "environment", title: "Environment Status", text: "Check AutoDock Vina and the Python pipeline here before running research workflows.", tab: "panel-dashboard" },
+        { target: "nav-protein", title: "Step 1 — Protein Target", text: "Choose a curated protein target or download a structure directly from RCSB PDB.", tab: "panel-step1" },
+        { target: "protein-presets", title: "Curated Targets", text: "These presets provide a target protein, disease context, and docking coordinates to get you started quickly.", tab: "panel-step1" },
+        { target: "nav-ligand", title: "Step 2 — Ligand Library", text: "Prepare the built-in ligand library or add your own molecule from a SMILES string.", tab: "panel-step2" },
+        { target: "nav-grid", title: "Step 3 — Docking Grid", text: "Define the three-dimensional search box around the binding site. Presets can populate the coordinates automatically.", tab: "panel-step3" },
+        { target: "nav-run", title: "Step 4 — Run Screen", text: "Select the prepared target and ligand, then launch an AutoDock Vina docking job.", tab: "panel-step4" },
+        { target: "nav-analysis", title: "Step 5 — Analyze & 3D", text: "Compare binding affinities and inspect docked poses in the interactive 3D molecular viewer.", tab: "panel-step5" },
+        { target: "nav-paper", title: "Step 6 — Research Paper", text: "Compile your experiment into a manuscript draft for further scientific editing and review.", tab: "panel-step6" },
+        { target: "app-version", title: "Version & Compatibility", text: "The application version is shown here. Agent integrations can query the same version and capabilities through the local API.", tab: "panel-dashboard" }
+    ],
 
     startTour() {
         document.getElementById("onboarding-overlay").classList.add("hidden");
-        if (document.getElementById("onboarding-dont-show").checked) {
-            localStorage.setItem("gs_onboarding_done", "1");
+        if (document.getElementById("onboarding-dont-show").checked) localStorage.setItem("gs_onboarding_done", "1");
+        this.state.tourIndex = 0;
+        this.showTourStep();
+    },
+
+    showTourStep() {
+        const step = this.tourSteps[this.state.tourIndex];
+        if (!step) return this.finishTour(true);
+        const target = document.querySelector('[data-tour="' + step.target + '"]');
+        if (!target) return this.nextTourStep();
+        if (step.tab && !document.getElementById(step.tab).classList.contains("active")) {
+            const nav = document.querySelector('.nav-btn[data-target="' + step.tab + '"]');
+            if (nav) nav.click();
         }
+        requestAnimationFrame(() => {
+            const layer = document.getElementById("tour-layer");
+            const spotlight = document.getElementById("tour-spotlight");
+            const tooltip = document.getElementById("tour-tooltip");
+            if (!layer || !spotlight || !tooltip) return;
+            layer.classList.remove("hidden");
+            layer.setAttribute("aria-hidden", "false");
+            document.getElementById("tour-step-count").textContent = "Step " + (this.state.tourIndex + 1) + " of " + this.tourSteps.length;
+            document.getElementById("tour-title").textContent = step.title;
+            document.getElementById("tour-description").textContent = step.text;
+            document.getElementById("tour-back").disabled = this.state.tourIndex === 0;
+            document.getElementById("tour-next").textContent = this.state.tourIndex === this.tourSteps.length - 1 ? "Finish" : "Next";
+            this.positionTour();
+        });
+    },
+
+    positionTour() {
+        const step = this.tourSteps[this.state.tourIndex];
+        const target = step && document.querySelector('[data-tour="' + step.target + '"]');
+        const spotlight = document.getElementById("tour-spotlight");
+        const tooltip = document.getElementById("tour-tooltip");
+        if (!target || !spotlight || !tooltip) return;
+        target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+        const rect = target.getBoundingClientRect();
+        const pad = 8;
+        spotlight.style.left = Math.max(6, rect.left - pad) + "px";
+        spotlight.style.top = Math.max(6, rect.top - pad) + "px";
+        spotlight.style.width = Math.min(window.innerWidth - 12, rect.width + pad * 2) + "px";
+        spotlight.style.height = Math.min(window.innerHeight - 12, rect.height + pad * 2) + "px";
+        const tooltipWidth = Math.min(360, window.innerWidth - 24);
+        tooltip.style.width = tooltipWidth + "px";
+        const gap = 16;
+        let left = Math.max(12, Math.min(window.innerWidth - tooltipWidth - 12, rect.left + rect.width / 2 - tooltipWidth / 2));
+        const tooltipHeight = tooltip.offsetHeight || 180;
+        let top = rect.bottom + gap;
+        if (top + tooltipHeight > window.innerHeight - 12) top = rect.top - tooltipHeight - gap;
+        if (top < 12) top = Math.max(12, (window.innerHeight - tooltipHeight) / 2);
+        tooltip.style.left = left + "px";
+        tooltip.style.top = top + "px";
+    },
+
+    nextTourStep() {
+        if (this.state.tourIndex >= this.tourSteps.length - 1) return this.finishTour(true);
+        this.state.tourIndex++;
+        this.showTourStep();
+    },
+
+    previousTourStep() {
+        if (this.state.tourIndex <= 0) return;
+        this.state.tourIndex--;
+        this.showTourStep();
+    },
+
+    finishTour(completed) {
+        const layer = document.getElementById("tour-layer");
+        if (layer) {
+            layer.classList.add("hidden");
+            layer.setAttribute("aria-hidden", "true");
+        }
+        if (completed) localStorage.setItem("gs_tour_completed", "1");
+        this.state.tourIndex = 0;
     },
 
     // NAVIGATION
