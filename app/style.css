@@ -1235,3 +1235,40 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
 }
+
+
+/* INTERACTIVE PRODUCT TOUR */
+.app-version {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-family: var(--font-mono);
+}
+.tour-layer { position: fixed; inset: 0; z-index: 10000; }
+.tour-backdrop { position: absolute; inset: 0; background: rgba(15,23,42,.58); backdrop-filter: blur(1px); }
+.tour-spotlight {
+    position: fixed; z-index: 10001; border: 2px solid var(--color-primary); border-radius: 10px;
+    box-shadow: 0 0 0 9999px rgba(15,23,42,.58), 0 0 0 5px rgba(37,99,235,.16);
+    pointer-events: none; transition: all .2s ease;
+}
+.tour-tooltip {
+    position: fixed; z-index: 10002; background: #fff; border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 18px;
+    max-width: 360px; color: var(--text-primary);
+}
+.tour-tooltip-arrow {
+    position: absolute; width: 10px; height: 10px; background: #fff;
+    border-left: 1px solid var(--border-color); border-top: 1px solid var(--border-color);
+    transform: rotate(45deg); top: -6px; left: 50%;
+}
+.tour-step-count { color: var(--color-primary); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.tour-tooltip h3 { font-size: 16px; margin-bottom: 6px; }
+.tour-tooltip p { color: var(--text-secondary); font-size: 12px; line-height: 1.6; margin-bottom: 16px; }
+.tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tour-nav-actions { display: flex; gap: 6px; }
+.tour-tooltip .btn:disabled { opacity: .35; }
+@media (max-width: 720px) { .tour-tooltip { max-width: calc(100vw - 24px); } }
