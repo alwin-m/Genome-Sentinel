@@ -18,6 +18,8 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 BIN_DIR = os.path.join(BASE_DIR, "bin")
 
 PORT = 8000
+APP_VERSION = "1.1.0"
+API_VERSION = "1"
 
 class GenomeSentinelHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     
@@ -41,7 +43,11 @@ class GenomeSentinelHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         path = parsed_url.path
         
         # 1. Serve API Endpoints
-        if path == "/api/status":
+        if path == "/api/info":
+            self.handle_api_info()
+        elif path == "/api/capabilities":
+            self.handle_api_capabilities()
+        elif path == "/api/status":
             self.handle_api_status()
         elif path == "/api/results":
             self.handle_api_results()
@@ -66,7 +72,9 @@ class GenomeSentinelHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             except Exception as e:
                 print(f"Error parsing JSON post data: {e}")
                 
-        if path == "/api/setup":
+        if path == "/api/agent/execute":
+            self.handle_agent_execute(data)
+        elif path == "/api/setup":
             self.handle_api_setup()
         elif path == "/api/download_protein":
             self.handle_api_download_protein(data)
@@ -86,6 +94,49 @@ class GenomeSentinelHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.handle_api_download_manuscript(data)
         else:
             self.send_error_response(404, "API endpoint not found")
+
+    # Machine-readable metadata and controlled agent interface
+    def handle_api_info(self):
+        self.send_json_response(200, {
+            "application": "Genome Sentinel",
+            "version": APP_VERSION,
+            "api_version": API_VERSION,
+            "platform": "windows",
+            "mode": "local-first",
+            "description": "Offline-capable computational molecular docking workspace"
+        })
+
+    def handle_api_capabilities(self):
+        self.send_json_response(200, {
+            "application": "Genome Sentinel",
+            "version": APP_VERSION,
+            "api_version": API_VERSION,
+            "capabilities": [
+                {"name":"get_status","method":"GET","endpoint":"/api/status","read_only":True},
+                {"name":"get_results","method":"GET","endpoint":"/api/results","read_only":True},
+                {"name":"download_protein","method":"POST","endpoint":"/api/agent/execute","action":"download_protein","read_only":False},
+                {"name":"prepare_presets","method":"POST","endpoint":"/api/agent/execute","action":"prepare_presets","read_only":False},
+                {"name":"prepare_custom_ligand","method":"POST","endpoint":"/api/agent/execute","action":"prepare_custom_ligand","read_only":False},
+                {"name":"run_docking","method":"POST","endpoint":"/api/agent/execute","action":"run_docking","read_only":False},
+                {"name":"clear_results","method":"POST","endpoint":"/api/agent/execute","action":"clear_results","read_only":False}
+            ]
+        })
+
+    def handle_agent_execute(self, data):
+        action = str(data.get("action", "")).strip().lower()
+        allowed = {
+            "get_status": lambda: self.handle_api_status(),
+            "get_results": lambda: self.handle_api_results(),
+            "download_protein": lambda: self.handle_api_download_protein(data),
+            "prepare_presets": lambda: self.handle_api_prep_presets(),
+            "prepare_custom_ligand": lambda: self.handle_api_prep_custom_ligand(data),
+            "run_docking": lambda: self.handle_api_run_docking(data),
+            "clear_results": lambda: self.handle_api_clear_results()
+        }
+        if action not in allowed:
+            self.send_json_response(400, {"success":False,"error":"Unsupported agent action","supported_actions":sorted(allowed.keys()),"api_version":API_VERSION})
+            return
+        allowed[action]()
 
     # API Handler: Status
     def handle_api_status(self):
@@ -372,7 +423,7 @@ def main():
     print(f"Serving web client from {APP_DIR}")
     print(f"Serving data folder from {DATA_DIR}")
     
-    with ThreadedHTTPServer(("", PORT), GenomeSentinelHTTPRequestHandler) as httpd:
+    with ThreadedHTTPServer(("127.0.0.1", PORT), GenomeSentinelHTTPRequestHandler) as httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
