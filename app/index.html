@@ -77,34 +77,34 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
         <div class="logo-area">
-            <h2>Genome<span>Sentinel</span><span class="version-tag">v1.0</span></h2>
+            <h2>Genome<span>Sentinel</span><span class="version-tag" id="sidebar-version">v1.1.0</span></h2>
         </div>
         <nav class="nav-menu">
             <button class="nav-btn active" data-target="panel-dashboard">
                 <i class="fa-solid fa-gauge-high"></i> Dashboard
                 <span class="step-badge">Hub</span>
             </button>
-            <button class="nav-btn" data-target="panel-step1">
+            <button class="nav-btn" data-target="panel-step1" data-tour="nav-protein">
                 <i class="fa-solid fa-shield-virus"></i> 1. Protein Target
                 <span class="step-badge" id="progress-step1">—</span>
             </button>
-            <button class="nav-btn" data-target="panel-step2">
+            <button class="nav-btn" data-target="panel-step2" data-tour="nav-ligand">
                 <i class="fa-solid fa-capsules"></i> 2. Ligand Library
                 <span class="step-badge" id="progress-step2">—</span>
             </button>
-            <button class="nav-btn" data-target="panel-step3">
+            <button class="nav-btn" data-target="panel-step3" data-tour="nav-grid">
                 <i class="fa-solid fa-cube"></i> 3. Docking Grid
                 <span class="step-badge" id="progress-step3">—</span>
             </button>
-            <button class="nav-btn" data-target="panel-step4">
+            <button class="nav-btn" data-target="panel-step4" data-tour="nav-run">
                 <i class="fa-solid fa-play"></i> 4. Run Screen
                 <span class="step-badge" id="progress-step4">—</span>
             </button>
-            <button class="nav-btn" data-target="panel-step5">
+            <button class="nav-btn" data-target="panel-step5" data-tour="nav-analysis">
                 <i class="fa-solid fa-chart-line"></i> 5. Analyze & 3D
                 <span class="step-badge" id="progress-step5">—</span>
             </button>
-            <button class="nav-btn" data-target="panel-step6">
+            <button class="nav-btn" data-target="panel-step6" data-tour="nav-paper">
                 <i class="fa-solid fa-file-signature"></i> 6. Research Paper
                 <span class="step-badge" id="progress-step6">—</span>
             </button>
@@ -125,7 +125,7 @@
             <div class="header-actions">
                 <span class="status-badge" id="status-vina"><span class="dot"></span> Vina: Checking...</span>
                 <span class="status-badge" id="status-env"><span class="dot"></span> Python: Checking...</span>
-                <button class="btn btn-secondary btn-sm" id="btn-show-help" title="Show welcome guide"><i class="fa-solid fa-circle-question"></i></button>
+                <span class="app-version" id="app-version">v1.1.0</span><button class="btn btn-secondary btn-sm" id="btn-show-help" title="Show welcome guide"><i class="fa-solid fa-circle-question"></i></button>
             </div>
         </header>
 
@@ -170,7 +170,7 @@
                             <h2>Molecular Docking Workspace</h2>
                             <p>Genome Sentinel performs virtual screening of drug candidates against disease target proteins using AutoDock Vina. Follow the 6-step workflow from left to right, or use the dashboard to monitor your environment and results.</p>
                             <div class="quick-actions">
-                                <button class="btn btn-primary" id="btn-quick-start"><i class="fa-solid fa-bolt"></i> Quick Start Guide</button>
+                                <button class="btn btn-primary" id="btn-quick-start" data-tour="quick-start"><i class="fa-solid fa-bolt"></i> Quick Start Guide</button>
                                 <button class="btn btn-secondary" id="btn-check-status"><i class="fa-solid fa-arrows-rotate"></i> Refresh Status</button>
                             </div>
                         </div>
@@ -178,7 +178,7 @@
                 </div>
 
                 <!-- Environment Status -->
-                <div class="card">
+                <div class="card" data-tour="environment">
                     <div class="card-header">
                         <h3><i class="fa-solid fa-laptop-code"></i> Environment</h3>
                     </div>
@@ -245,7 +245,7 @@
                     </div>
                     <div class="card-body">
                         <p class="card-desc">Click a preset to auto-configure the target protein and active site coordinates, or enter a custom PDB ID below.</p>
-                        <div class="preset-grid">
+                        <div class="preset-grid" data-tour="protein-presets">
                             <div class="preset-card" data-pdb="2B8L" data-name="BACE1" data-disease="Alzheimer's" data-x="16.0" data-y="10.0" data-z="15.0">
                                 <div class="preset-badge">Alzheimer's</div>
                                 <h4>BACE1 <span class="pdb-tag">2B8L</span></h4>
@@ -387,7 +387,7 @@
         </section>
 
         <!-- Panel: Step 3 (Docking Grid) -->
-        <section class="panel-section" id="panel-step3">
+        <section class="panel-section" id="panel-step3" data-tour="grid-panel">
             <div class="grid-layout">
                 <div class="card card-wide">
                     <div class="card-header">
@@ -469,7 +469,7 @@
         </section>
 
         <!-- Panel: Step 4 (Run Screen) -->
-        <section class="panel-section" id="panel-step4">
+        <section class="panel-section" id="panel-step4" data-tour="run-panel">
             <div class="grid-layout">
                 <div class="card card-wide">
                     <div class="card-header">
@@ -518,7 +518,7 @@
         </section>
 
         <!-- Panel: Step 5 (Analyze & 3D) -->
-        <section class="panel-section" id="panel-step5">
+        <section class="panel-section" id="panel-step5" data-tour="analysis-panel">
             <div class="grid-layout">
                 <div class="card" id="card-results-list">
                     <div class="card-header">
@@ -596,7 +596,7 @@
         </section>
 
         <!-- Panel: Step 6 (Research Paper) -->
-        <section class="panel-section" id="panel-step6">
+        <section class="panel-section" id="panel-step6" data-tour="paper-panel">
             <div class="grid-layout">
                 <div class="card">
                     <div class="card-header">
@@ -638,5 +638,24 @@
     </main>
 </div>
 <script src="/app/app.js"></script>
+
+<!-- INTERACTIVE PRODUCT TOUR -->
+<div class="tour-layer hidden" id="tour-layer" aria-hidden="true">
+    <div class="tour-backdrop" id="tour-backdrop"></div>
+    <div class="tour-spotlight" id="tour-spotlight"></div>
+    <div class="tour-tooltip" id="tour-tooltip" role="dialog" aria-live="polite">
+        <div class="tour-tooltip-arrow" id="tour-arrow"></div>
+        <div class="tour-step-count" id="tour-step-count">Step 1 of 10</div>
+        <h3 id="tour-title">Welcome</h3>
+        <p id="tour-description">Let's walk through Genome Sentinel.</p>
+        <div class="tour-actions">
+            <button class="btn btn-secondary btn-sm" id="tour-skip">Skip Tour</button>
+            <div class="tour-nav-actions">
+                <button class="btn btn-secondary btn-sm" id="tour-back">Back</button>
+                <button class="btn btn-primary btn-sm" id="tour-next">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>
